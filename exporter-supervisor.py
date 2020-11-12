@@ -122,7 +122,6 @@ def run_command(cmd, shell=True):
 def get_current_exporter_pids(exporter_keyword):
     cmd = "ps -elf |egrep \"%s\" |grep -v grep |awk '{print $4}'" %(exporter_keyword)
     logger.debug(cmd)
-    print cmd
     try:
         output = run_command(cmd)
         pids = [int(pid) for pid in output.strip().split('\n') if pid]
