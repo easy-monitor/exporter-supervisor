@@ -84,19 +84,22 @@ def batch_update_instances(object_id, keys, datas, timeout=30):
 def get_all_nodes(object_id):
     res = search_instances(
         object_id, 
+        query = {
+            "isMonitor": True
+        },
         fields = {"exporter": 1, "instanceId": 1, "ip": 1, "port": 1}
     )
     return res['data']['list']
 
-def create_or_update_exporter_config_by_node(instanceData, assigned_ports, agent_ip, config):
+def create_or_update_exporter_config_by_node(instanceData, assigned_ports, current_exporter_pids, agent_ip, config):
     exporter = instanceData.get('exporter', {
         "protocol": "http",
         "uri": "/metrics",
         "host": agent_ip,
         "pid": None
     })
-    # 之前没启动过，或者现在有新的监控机来接管
-    if exporter.get('pid') is None or exporter['host'] != agent_ip:
+    # 之前没启动过，或者现在有新的监控机来接管，或者之前的pid已经不存活
+    if exporter.get('pid') is None or exporter['host'] != agent_ip or exporter['pid'] not in current_exporter_pids:
         exporter['host'] = agent_ip
         exporter['port'] = assign_exporter_port(instanceData, assigned_ports, config['port_range'])
         context = copy.deepcopy(instanceData)
@@ -144,12 +147,13 @@ def start_exporter(exporter_inst, instanceData):
         # 拿最后一行作为pid
         pid = output.strip().split('\n')[-1]
         if pid.isdigit():
-            # 再次判断下进程是否存活
+            # 等待2s再次判断下进程是否存活
+            time.sleep(2)
             if is_pid_alive(pid):
                 logger.info('%s success, pid is: %s' %(instanceFlag, pid))
                 return int(pid)
-        logger.error('%s failed' %(instanceFlag))
-    except:
+        logger.error('%s failed, please check log' %(instanceFlag))
+    except Exception,e:
         logger.error(traceback.format_exc())
     return None
     
@@ -197,9 +201,9 @@ def main(object_id, config):
     will_update_nodes = []
     for node in all_nodes:
         # 根据node的配置生成exporter_inst
-        exporter_inst = create_or_update_exporter_config_by_node(node, assigned_ports, agent_ip, config)
+        exporter_inst = create_or_update_exporter_config_by_node(node, assigned_ports, current_exporter_pids, agent_ip, config)
         # pid为空表示新建，pid不为空则表示之前的进程
-        if exporter_inst['pid'] is None or exporter_inst['pid'] not in current_exporter_pids:
+        if exporter_inst['pid'] is None:
             pid = start_exporter(exporter_inst, node)
             # 启动成功，则返回pid，否则返回None
             if pid: 
@@ -207,7 +211,7 @@ def main(object_id, config):
                 node['exporter'] = exporter_inst
                 will_update_nodes.append(node)
             # 随机sleep几秒，避免机器负载太高
-            time.sleep(random.randrange(0,2))
+            time.sleep(random.randrange(0,1))
     # 更新CMDB数据
     if will_update_nodes:
         update_nodes(object_id, will_update_nodes)
