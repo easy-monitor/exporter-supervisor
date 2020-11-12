@@ -20,8 +20,8 @@ ORG = "8888"
 USER = "defaultUser"
 # CMDB地址，现场根据情况修改
 CMDB_HOST = "http://192.168.100.210:30079"
-# 守护间隔，如：每隔3s则去同步cmdb的实例和exporter的进程状态
-INTERVAL = 3
+# 守护间隔，如：每隔300s则去同步cmdb的实例和exporter的进程状态
+INTERVAL = 300
 # 启动脚本路径，用来判断是否在正确的路径启动，一般不需要改
 START_SCRIPT_PATH = './deploy/start_script.sh'
 
