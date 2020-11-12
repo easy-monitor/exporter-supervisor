@@ -22,8 +22,9 @@ USER = "defaultUser"
 CMDB_HOST = "http://192.168.100.210:30079"
 # 守护间隔，如：每隔300s则去同步cmdb的实例和exporter的进程状态
 INTERVAL = 300
-# 启动脚本路径，用来判断是否在正确的路径启动，一般不需要改
-START_SCRIPT_PATH = './deploy/start_script.sh'
+# 配置文件路径，用来判断是否在正确的路径启动，一般不需要改
+CONFIG_PATH = './conf/conf.default.yaml'
+CUSTOM_CONFIG_PATH = './conf/conf.yaml'
 
 def init_logger(object_id):
     logger = logging.getLogger(object_id)
@@ -232,17 +233,20 @@ def load_config(config_path):
 
 if __name__ == '__main__':
     args = sys.argv
-    if len(args) != 3:
-        print "Usage: %s [objectId] [confpath], eg: %s KAFKA_SERVICE_NODE ./conf/conf.default.yaml" %(args[0], args[0])
+    if len(args) != 2:
+        print "Usage: %s [objectId], eg: %s KAFKA_SERVICE_NODE" %(args[0], args[0])
         sys.exit(1)
-    if not os.path.isfile(args[2]):
-        print "not found %s, you should run at plugin root folder" %(args[2])
+    if not os.path.isfile(CONFIG_PATH):
+        print "not found %s, may be you not run at plugin root folder" %(CONFIG_PATH)
         sys.exit(2)
     logger = init_logger(args[1])
-    config = load_config(args[2])
-    if not os.path.isfile(START_SCRIPT_PATH):
-        print "not found %s, may be you not run at plugin root folder" %(START_SCRIPT_PATH)
-        sys.exit(2)
+
+    # 获取默认配置及用户配置
+    config = load_config(CONFIG_PATH)
+    if os.path.isfile(CUSTOM_CONFIG_PATH):
+        custom_config = load_config(CONFIG_PATH)
+        config.update(custom_config)
+
     print '%s start' %args[1]
     while 1:
         try:
