@@ -14,11 +14,16 @@ import traceback
 import ConfigParser
 import yaml
 
+# CMDB配置，现场根据情况修改
 ORG = "8888"
+# CMDB用户，一般不需要改
 USER = "defaultUser"
+# CMDB地址，现场根据情况修改
 CMDB_HOST = "http://192.168.100.210:30079"
+# 守护间隔，如：每隔3s则去同步cmdb的实例和exporter的进程状态
+INTERVAL = 3
+# 启动脚本路径，用来判断是否在正确的路径启动，一般不需要改
 START_SCRIPT_PATH = './deploy/start_script.sh'
-
 
 def init_logger(object_id):
     logger = logging.getLogger(object_id)
@@ -225,7 +230,7 @@ def load_config(config_path):
 if __name__ == '__main__':
     args = sys.argv
     if len(args) != 3:
-        print "Usage: %s [objectId] [confpath], eg: %s KAFKA_SERVICE_NODE ../conf/conf.default.yaml" %(args[0], args[0])
+        print "Usage: %s [objectId] [confpath], eg: %s KAFKA_SERVICE_NODE ./conf/conf.default.yaml" %(args[0], args[0])
         sys.exit(1)
     if not os.path.isfile(args[2]):
         print "not found %s, you should run at plugin root folder" %(args[2])
@@ -235,7 +240,6 @@ if __name__ == '__main__':
     if not os.path.isfile(START_SCRIPT_PATH):
         print "not found %s, may be you not run at plugin root folder" %(START_SCRIPT_PATH)
         sys.exit(2)
-    interval = 3
     print '%s start' %args[1]
     while 1:
         try:
@@ -243,10 +247,10 @@ if __name__ == '__main__':
                 logger.info('start...')
                 main(args[1], config)
                 logger.info('end...')
-                time.sleep(interval)
+                time.sleep(INTERVAL)
         except (KeyboardInterrupt,SystemExit),e:
             sys.exit(1)
         except Exception,e:
             logger.error(traceback.format_exc())
-            time.sleep(interval)
+            time.sleep(INTERVAL)
 

@@ -7,17 +7,18 @@
 
 
 # 使用方式
+_注意，该项目不会独立执行，只作为插件包的框架文件_
 
-1. 将该项目作为子模块的形式引入到各采集插件包
-2. 采集插件包的`deploy/start_script.sh`写成类似：
+1. 将该项目作为子模块的形式引入到各采集插件包的supervisor目录
+2. 采集插件包（如[kafka-collector-plugin]）的`deploy/start_script.sh`调用，一般写成如下格式：
 
 ```shell
 #!/bin/bash
-../exporter-supervisor.py KAFKA_SERVICE_NODE ./conf/conf.default.yaml
+./supervisor/exporter-supervisor.py KAFKA_SERVICE_NODE ./conf/conf.default.yaml
 
 ```
 
-3. 插件包需要有个`conf/conf.default.yaml`配置，里面必须有如下配置：
+3. 插件包（如[kafka-collector-plugin]）需要有个`conf/conf.default.yaml`配置，里面必须有如下配置：
 ```yaml
 # exporter进程的keyword，支持"java|xxx|xx"的正则，程序会根据egrep的方式去过滤
 exporter_keyword: "kafka_exporter"
@@ -30,3 +31,6 @@ start_cmd_template: "bash ./bin/start.sh --kafka-server {ip}:{port} --exporter-p
 
 
 ```
+
+
+[kafka-collector-plugin]: https://github.com/easy-monitor/kafka-collector-plugin
