@@ -82,14 +82,13 @@ def batch_update_instances(object_id, keys, datas, timeout=30):
     return resp.json()
 
 
-def get_all_nodes(object_id):
+def get_all_nodes(object_id, config):
     res = search_instances(
         object_id, 
-        query = {
-            "isMonitor": True
-        },
+        query = config.get('query', {}),
         fields = {"exporter": 1, "instanceId": 1, "ip": 1, "port": 1}
     )
+    logger.info('get %s nodes' %res['data']['total'])
     return res['data']['list']
 
 def create_or_update_exporter_config_by_node(instanceData, assigned_ports, current_exporter_pids, agent_ip, config):
@@ -194,8 +193,9 @@ def main(object_id, config):
     if not agent_ip:
         logger.error('not found agent ip, exit')
         return
+    logger.debug('agent ip is %s' %agent_ip)
     # 找到所有的服务节点
-    all_nodes = get_all_nodes(object_id)
+    all_nodes = get_all_nodes(object_id, config)
     assigned_ports = {node['exporter']['port'] for node in all_nodes if node.get('exporter')}
     # 通过ps关键字找到当前运行的exporter
     current_exporter_pids = get_current_exporter_pids(config['exporter_keyword'])
@@ -221,33 +221,36 @@ def main(object_id, config):
     if should_stop_pids:
         stop_process_by_pids(should_stop_pids)
 
-def load_config(config_path):
-    try:
-        with open(config_path) as fp:
-            config = yaml.load(fp)
-            logger.info('load config: %s' %config)
-            return config
-    except:
-        raise ValueError("%s parse error, it is not a valid yaml file" %config_path)
-        sys.exit(1)
+def load_config():
+    def _load_config(config_path):
+        try:
+            with open(config_path) as fp:
+                config = yaml.load(fp)
+                return config
+        except:
+            raise ValueError("%s parse error, it is not a valid yaml file" %config_path)
+            sys.exit(1)
+    if not os.path.isfile(CONFIG_PATH):
+        print "not found %s, may be you not run at plugin root folder" %(CONFIG_PATH)
+        sys.exit(2)
+    config = _load_config(CONFIG_PATH)
+    if os.path.isfile(CUSTOM_CONFIG_PATH):
+        custom_config = _load_config(CUSTOM_CONFIG_PATH)
+        if custom_config:
+            config.update(custom_config)
+    logger.info('load config: %s' %config)
+    return config
 
 if __name__ == '__main__':
     args = sys.argv
     if len(args) != 2:
         print "Usage: %s [objectId], eg: %s KAFKA_SERVICE_NODE" %(args[0], args[0])
         sys.exit(1)
-    if not os.path.isfile(CONFIG_PATH):
-        print "not found %s, may be you not run at plugin root folder" %(CONFIG_PATH)
-        sys.exit(2)
-    logger = init_logger(args[1])
-
-    # 获取默认配置及用户配置
-    config = load_config(CONFIG_PATH)
-    if os.path.isfile(CUSTOM_CONFIG_PATH):
-        custom_config = load_config(CONFIG_PATH)
-        config.update(custom_config)
-
     print '%s start' %args[1]
+    logger = init_logger(args[1])
+    # 获取默认配置及用户配置
+    config = load_config()
+
     while 1:
         try:
             while 1:
