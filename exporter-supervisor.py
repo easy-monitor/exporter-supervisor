@@ -85,10 +85,10 @@ def batch_update_instances(object_id, keys, datas, timeout=30):
 def get_all_nodes(object_id, config):
     res = search_instances(
         object_id, 
-        query = config.get('query', {}),
+        query = config.get('cmdb_query', {}),
         fields = {"exporter": 1, "instanceId": 1, "ip": 1, "port": 1}
     )
-    logger.info('get %s nodes' %res['data']['total'])
+    logger.info('get %s nodes should start' %res['data']['total'])
     return res['data']['list']
 
 def create_or_update_exporter_config_by_node(instanceData, assigned_ports, current_exporter_pids, agent_ip, config):
